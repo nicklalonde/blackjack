@@ -9,10 +9,6 @@
 #define NUM_CARDS 52
 #define NUM_PLAYERS 4
 
-#define FOLD 0
-#define CALL 1
-#define RAISE 2
-#define CHECK 3
 
 typedef struct {
     int rank;
@@ -42,11 +38,25 @@ typedef struct {
     int hiddenValue;
 } DEALER;
 
-
+int calculateHandValue(CARD hand[], int numCards);
 DECK *createDeck();
-void insertCards(DECK *);
-DECK *shuffleDeck();
-void freeDeck(DECK *);
-void printDeck(DECK *);
+void insertCards(DECK *deck);
+void shuffle(DECK *deck);
+char * printCard(CARD card);
+void showDealerHand(DEALER *dealer, int hide);
+int isBlackJack(PLAYER *player);
+void showPlayerHand(PLAYER *me);
+void showPlayerStats(PLAYER* me);
+void showDealerStats(DEALER *dealer, int m);
+PLAYER *createPlayer();
+DEALER *createDealer();
+void dealCards(PLAYER *player, DEALER* dealer, DECK *deck);
+void takePlayerBet(PLAYER *player);
+void stand(PLAYER *player);
+int hit(CARD cards[], DECK *deck, int numCards);
+void dealerTurn(DEALER *dealer, PLAYER *player, DECK *deck);
+void determineWinner(DEALER *dealer, PLAYER *player);
+void playerTurn(PLAYER *player, DECK *deck, DEALER *dealer, int start);
+void reset(PLAYER *player, DECK *deck, DEALER * dealer);
 
 #endif
