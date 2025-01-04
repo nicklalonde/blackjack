@@ -460,5 +460,3 @@ int main(int argc, char *argv[]) {
     free(dealer);
     return 0;
 }
-
-// Program still a little broken for dealer hits.
