@@ -27,6 +27,7 @@ DECK *createDeck() {
     }
     deck->size = NUM_CARDS;
     deck->top = 0;
+    insertCards(deck);
 
     return deck;
 }
@@ -59,20 +60,8 @@ void shuffle(DECK *deck) {
         deck->deck[i] = deck->deck[swap_index];
         deck->deck[swap_index] = temp;
     }
+    deck->top = 0;
 }
-DECK *shuffleDeck() {
-    DECK *deck = createDeck();
-    insertCards(deck);
-    shuffle(deck);
-    return deck;
-}
-
-void printDeck(DECK *deck) {
-    for (int i = deck->top; i < deck->size; i++) {
-        printf("%d of %c\n", deck->deck[i].rank, deck->deck[i].suit);
-    }
-}
-
 
 char * printCard(CARD card) {
 
@@ -222,7 +211,7 @@ void dealCards(PLAYER *player, DEALER* dealer, DECK *deck) {
 
 void takePlayerBet(PLAYER *player) {
 
-    printf("Please place your bet ($50 min).\n");
+    printf("\n\nPlease place your bet ($50 min).\n");
     printf("Your money:     $%d\n", player->money);
 
     if(player->money < 50) {
@@ -232,7 +221,7 @@ void takePlayerBet(PLAYER *player) {
 
     int bet, valid = 0;
     do {
-        printf("Bet:     ");
+        printf("Bet:     $");
         scanf("%d", &bet);
         printf("\n");
 
@@ -247,12 +236,12 @@ void takePlayerBet(PLAYER *player) {
     player->currentBet = bet;
     player->money -= bet;
 
-    printf("You placed a bet for $%d. You now have $%d.\n", bet, player->money);
+    printf("You placed a bet for $%d. You now have $%d.\n\n\n", bet, player->money);
     return;
 }
 
 void stand(PLAYER *player) {
-    printf("Stand!\n");
+    printf("\n\n\t\tStand!\n\n");
 }
 int hit(CARD cards[], DECK *deck, int numCards) {
     printf("\n\n\t\tHit!\n\n");
@@ -264,19 +253,16 @@ int hit(CARD cards[], DECK *deck, int numCards) {
 
     total = calculateHandValue(cards, numCards);
 
-    printf("\n\n%d", total);
 
     if (total == 21) {
         printf("\n\n\t\t21!\n\n");
         return total;
     }
 
-    // Show the updated hand value
-    printf("\n\n\t\tNew total: %d\n", total);
 
     // Check if  busts
     if (total > 21) {
-        printf("\n\n\t\tBusted with a total of %d!\n", total);
+        printf("\n\n\t\tBusted with a total of %d!\n\n", total);
         return -1; //  busts
     }
     return total; // still in the game
@@ -285,26 +271,39 @@ int hit(CARD cards[], DECK *deck, int numCards) {
 
 
 void dealerTurn(DEALER *dealer, PLAYER *player, DECK *deck) {
-    printf("\n\n\t\tDealer's turn begins.\n\n");
+    printf("\n\n\t\t   DEALER'S TURN\n\n");
+
+    showDealerStats(dealer, 0);
+    printf("\n\n\t\tDealer is showing %d\n\n", dealer->value[0]);
 
     if(dealer->value[0] == 21) { // dealer has natural blackjack
-        printf("\n\n\t\tdealer shows blackjack!\n\n");
+        printf("\n\n\t\tDealer shows blackjack!\n\n");
     }
     else if (dealer->value[0] > player->value[0]) {
-        printf("\n\n\t\tdealer stands -- and wins.\n\n");
+        printf("\n\n\t\tDealer stands -- and wins.\n\n");
+    }
+    else if (player->value[0] > 21) {
+        return;
     }
     else if(dealer->value[0] <= 16) { // the dealer must hit if their value is <= 16
-        while(player->value[0] > dealer->value[0]) { // dealer must hit until they beat player or bust
+        while(player->value[0] > dealer->value[0] && player->value[0] <= 21 || dealer->value[0] <= 16) {
             int total = hit(dealer->hand, deck, dealer->numCards);
             dealer->numCards++;
             dealer->value[0] = total;
+            showDealerStats(dealer, 0);
             if(total == -1) {
                 return; // dealer busted.
+            }
+            else if(total == 21) {
+                return; // dealer has blackjack.
+            }
+            else if (total >= 17) { // dealer stands on 17+ 
+                return;
             }
         }
     }
     else if (dealer->value[0] > 16) { // they stand;
-        printf("\n\n\t\tdealer stands at %d", dealer->value[0]);
+        printf("\n\n\t\tdealer stands at %d\n\n", dealer->value[0]);
     } 
 
     return;
@@ -320,19 +319,28 @@ void determineWinner(DEALER *dealer, PLAYER *player) {
     // Players wins if the dealer busts or the player's cards are valued higher than the dealer's.
 
     if (dealerValue > 21) { 
-        printf("Player wins!\n");
+        printf("\n\n\t\tPlayer wins!\n\n");
         player->money = player->money + player->currentBet * 2;
+        printf("\n\t\tYou earned $%d\n\n", player->currentBet * 2);
     } 
     else if (playerValue <= 21 && playerValue > dealerValue) { 
-        printf("Player wins!\n");
+        printf("\n\n\t\tPlayer wins!\n\n");
         player->money = player->money + player->currentBet * 2;
+        printf("\n\t\tYou earned $%d\n\n", player->currentBet * 2);
     } // hands are the same value.
     else if (playerValue == dealerValue) { 
-        printf("Push!\n");
+        printf("\n\n\t\tPush!\n\n");
         player->money += player->currentBet;
+        printf("\n\t\tYou got your $%d back.\n\n", player->currentBet);
     }
     else { // else the dealer wins.
-        printf("Dealer wins!\n");
+        printf("\n\n\t\tDealer wins!\n\n");
+        printf("\n\t\tYou lost your bet of $%d", player->currentBet);
+    }
+
+
+    if(player->money == 0) {
+        printf("\n\n\t\tYou're out of money. Game over.\n\n");
     }
 
     return;
@@ -350,18 +358,26 @@ void playerTurn(PLAYER *player, DECK *deck, DEALER *dealer, int start) {
                 printf("\n\nYou are at %d. The dealer is at %d.\nWould you like to hit (1) or stand (2) ?\n", player->value[0], dealer->hiddenValue);
             else
                 printf("\n\nYou are at %d. The dealer is at %d.\nWould you like to hit (1) or stand (2) ?\n", player->value[0], dealer->value[0]);
-            do { // FIX LOOP HERE -- infinite on bad input.
-                printf("decision:     ");
-                scanf("%d", &decision);
-                printf("\n");
-                if(decision != 1 && decision != 2) {
-                    printf("Invalid decision. Please enter (1) hit or (2) stand.\n");
+            while(valid == 0) {
+                printf("decision: ");
+                
+                // Check if input is valid
+                if(scanf("%d", &decision) != 1) {
+                    printf("\nInvalid input. Please enter a number.\n");
+                    
+                    // Clear input buffer
+                    while(getchar() != '\n'); 
                     continue;
                 }
-                else 
-                    valid = 1;
 
-            } while(valid == 0);
+                // Validate the input value
+                if(decision != 1 && decision != 2) {
+                    printf("\nInvalid decision. Please enter (1) hit or (2) stand.\n");
+                    continue;
+                }
+
+                valid = 1; // Input is valid, exit loop
+            }
         }
         else {
             decision = 2;
@@ -414,12 +430,14 @@ int main(int argc, char *argv[]) {
     printf("\t\tYou start with $500.\n\n");
 
     
-    int start = 1,  hidden = 1;
-    DECK *deck = shuffleDeck();
+    int start = 1,  hidden;
+    DECK *deck = createDeck();
     PLAYER *player = createPlayer();
     DEALER *dealer = createDealer();
 
     while(player->money != 0) {
+        shuffle(deck);
+        hidden = 1;
         if(!start) {
             reset(player, deck, dealer);
         }
@@ -432,12 +450,8 @@ int main(int argc, char *argv[]) {
         hidden = 0;
         // Dealer's turn
         dealerTurn(dealer, player, deck);
-
-    winner: 
-        determineWinner(dealer, player);
-
-        showDealerStats(dealer, 0);
         showPlayerStats(player);
+        determineWinner(dealer, player);
         start = 0;
     }
 
@@ -446,3 +460,5 @@ int main(int argc, char *argv[]) {
     free(dealer);
     return 0;
 }
+
+// Program still a little broken for dealer hits.
